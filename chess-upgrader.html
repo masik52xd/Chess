@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="uk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chess Upgrader</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap');
+:root{--y:#ffc800;--y2:#f5a300;--bd:#262626}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;color:#fff;font-family:'Rubik',system-ui,sans-serif;min-height:100vh;user-select:none}
+header{height:60px;display:flex;align-items:center;gap:10px;padding:0 24px;font-weight:800;font-size:22px}
+header svg{width:26px;color:var(--y)}header small{margin-left:auto;font-size:12px;color:#777;font-weight:400}
+.wrap{display:flex;gap:24px;justify-content:center;align-items:flex-start;padding:10px 20px 30px;flex-wrap:wrap}
+.bw{position:relative}
+#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));width:min(600px,92vw);aspect-ratio:1;border-radius:10px;overflow:hidden;border:2px solid #2a2a2a}
+.sq{min-width:0;min-height:0;overflow:hidden;display:grid;place-items:center;font-size:min(7.2vw,46px);position:relative;cursor:pointer;line-height:1}
+.sq.l{background:#2e2e2e}.sq.d{background:#1c1c1c}
+.sq.sel{background:#6b5600!important}.sq.mv:after{content:"";width:28%;height:28%;border-radius:50%;background:#ffc80099;position:absolute}
+.sq.mv.cap:after{width:86%;height:86%;background:none;border:3px solid #ffc80099}
+.sq.chk{background:#7a1c1c!important}.sq.last{box-shadow:inset 0 0 0 3px #ffc80055}
+.sq.boom{animation:boom .7s}
+@keyframes boom{50%{background:#a02525}}
+.pc{font-family:"Segoe UI Symbol","Noto Sans Symbols 2",serif;text-shadow:0 2px 4px #000a}
+.pc.w{color:#fff;-webkit-text-stroke:1px #666}.pc.b{color:#0b0b0b;text-shadow:0 0 3px #fff,0 0 1px #fff}
+.co{position:absolute;font-size:9px;color:#666;left:3px;bottom:1px}.ro{position:absolute;font-size:9px;color:#666;right:3px;top:1px}
+.side{width:320px;display:flex;flex-direction:column;gap:12px}
+.card{background:#181818;border-radius:12px;padding:14px}
+.card h3{font-size:12px;color:#888;font-weight:500;margin-bottom:10px}
+#status{font-weight:600;font-size:15px;min-height:22px}
+.sp{display:flex;align-items:center;gap:12px;min-height:56px}.sp .g{font-size:42px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.opt{background:#222;border:1px solid #333;border-radius:8px;padding:8px;font-size:12px;color:#ddd;text-align:left;cursor:pointer;font-family:inherit}
+.opt:hover:not(:disabled){border-color:var(--y)}.opt:disabled{opacity:.4;cursor:not-allowed}
+.opt b{display:block;font-size:18px;color:var(--y)}.opt .g{font-size:20px;margin-right:4px}
+.hint{font-size:11px;color:#777;margin-top:10px;line-height:1.5}
+.cap{display:flex;gap:2px;flex-wrap:wrap;font-size:18px;min-height:24px}
+#log{max-height:170px;overflow:auto;font-size:12px;color:#aaa;line-height:1.7}
+#log .ok{color:#7ad03a}#log .no{color:#ff4d4d}
+.st{display:flex;gap:8px}.st div{flex:1;background:#202020;border-radius:8px;padding:8px;text-align:center;font-size:11px;color:#888}.st b{display:block;color:var(--y);font-size:18px}
+.btn{background:linear-gradient(#ffc800,#f5a300);border:0;border-radius:8px;height:40px;font-weight:700;color:#111;cursor:pointer;font-family:inherit;width:100%}
+.mod{position:fixed;inset:0;background:#000b;display:none;place-items:center;z-index:9}.mod.on{display:grid}
+.mb{background:#181818;border:2px solid var(--y);border-radius:16px;padding:20px 30px;text-align:center}
+.mb.l{border-color:#a02525}.mb h2{font-size:18px;margin-bottom:4px}
+.wh{position:relative;width:260px;height:260px;margin:6px auto}.wh canvas{position:absolute;inset:0}
+.wc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.wc b{font-size:32px;color:#a8e02a}.wc span{font-size:20px}
+.mbtn{background:#222;border:1px solid #333;color:#ddd;border-radius:8px;padding:8px 14px;font-family:inherit;cursor:pointer;font-size:13px}
+#menu{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#1d1a0d,#111 60%);z-index:20;display:none;overflow:auto;padding:30px 16px}#menu.on{display:block}
+.mm{max-width:520px;margin:0 auto}.mm h1{font-size:34px;font-weight:800;text-align:center;display:flex;gap:10px;justify-content:center;align-items:center}.mm h1 svg{width:36px;color:var(--y)}
+.mm p.sub{text-align:center;color:#888;font-size:13px;margin:6px 0 22px}
+.mc{background:#181818;border-radius:14px;padding:16px;margin-bottom:12px}.mc h3{font-size:12px;color:#888;font-weight:500;margin-bottom:10px}
+.mr{display:flex;gap:8px}.mb2{flex:1;background:#222;border:1px solid #333;border-radius:10px;padding:14px 8px;color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.mb2:hover:not(:disabled){border-color:var(--y);color:var(--y)}.mb2:disabled{opacity:.4;cursor:not-allowed}.mb2 small{display:block;font-weight:400;color:#888;font-size:11px;margin-top:3px}
+.fr{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:13px}.fr label{width:150px;color:#ccc}.fr input[type=range]{flex:1;accent-color:var(--y)}.fr span{width:46px;text-align:right;color:var(--y);font-weight:600}
+.fr select{flex:1;background:#222;color:#fff;border:1px solid #333;border-radius:6px;padding:7px;font-family:inherit}
+.tgs{display:flex;gap:10px;flex:1}.tgs label{width:auto;display:flex;gap:4px;align-items:center}.tgs input{accent-color:var(--y)}
+textarea{width:100%;height:64px;background:#222;color:#fff;border:1px solid #333;border-radius:8px;font-size:10px;margin:8px 0;padding:8px;word-break:break-all;resize:none;font-family:monospace}
+.mm select.fi2{width:100%;background:#222;color:#fff;border:1px solid #333;border-radius:6px;padding:9px;font-family:inherit}
+</style></head><body>
+<header><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 2 11v5l10-8.5L22 16v-5zM12 10 2 18.5V22l10-8.5L22 22v-3.5z"/></svg>CHESS UPGRADER<small>Inspired by Chess Ultimate (MIT) · no castling / en passant</small><button class="mbtn" onclick="showMenu()">☰ Menu</button></header>
+<div class="wrap">
+ <div class="bw"><div id="board"></div></div>
+ <div class="side">
+  <div class="card"><div id="status"></div></div>
+  <div class="card"><h3>Selected piece</h3><div class="sp" id="sp">Click your piece</div><div class="opts" id="opts"></div>
+   <div class="hint" id="hint"></div></div>
+  <div class="card st"><div><b id="sU">0</b>Upgrades</div><div><b id="sW">0</b>Success</div><div><b id="sL">0</b>Lost</div></div>
+  <div class="card"><h3>Captured</h3><div class="cap" id="c1"></div><div class="cap" id="c2"></div></div>
+  <div class="card"><h3>Log</h3><div id="log"></div></div>
+  <button class="btn" onclick="newGame()">New game</button>
+ </div>
+</div>
+<div id="menu"><div class="mm">
+ <h1><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 2 11v5l10-8.5L22 16v-5zM12 10 2 18.5V22l10-8.5L22 22v-3.5z"/></svg>CHESS UPGRADER</h1><p class="sub">Every upgrade costs your turn. Fail and the piece is gone.</p>
+ <div id="m-main">
+  <div class="mc"><h3>Play vs computer</h3><div class="mr"><button class="mb2" onclick="start('ai',1)">Easy<small>random-ish</small></button><button class="mb2" onclick="start('ai',2)">Medium<small>takes pieces</small></button><button class="mb2" onclick="start('ai',3)">Hard<small>looks 2 moves</small></button></div></div>
+  <div class="mc"><h3>Local</h3><div class="mr"><button class="mb2" onclick="start('local')">2 players<small>one device, standard rules</small></button></div></div>
+  <div class="mc"><h3>Custom</h3><div class="mr"><button class="mb2" onclick="scr('custom')">Custom rules<small>chances, targets, limits, fail effect</small></button></div></div>
+  <div class="mc"><h3>Online</h3><div class="mr"><button class="mb2" onclick="scr('online')">Play online<small>peer-to-peer, no server (works on GitHub Pages)</small></button></div></div>
+ </div>
+ <div id="m-online" style="display:none">
+  <div class="mc"><h3>Rules (the host decides)</h3><select id="o-rules" class="fi2"><option value="classic">Classic</option><option value="hard">Hardcore</option><option value="lucky">Lucky</option><option value="coin">Coin flip</option><option value="chaos">Chaos</option><option value="king">Double King</option><option value="custom">Custom (from the Custom screen)</option></select></div>
+  <div class="mc"><h3>Host a game · you play white</h3><button class="mb2" style="width:100%" onclick="hostCreate()">1. Create room code</button>
+   <div id="o-host" style="display:none"><div class="hint">2. Copy this code and send it to your friend</div><textarea id="o-offer" readonly onclick="this.select()"></textarea>
+    <button class="mb2" style="width:100%" onclick="navigator.clipboard.writeText($('o-offer').value)">Copy code</button>
+    <div class="hint" style="margin-top:10px">3. Paste your friend's reply here</div><textarea id="o-ans"></textarea><button class="mb2" style="width:100%" onclick="hostConnect()">4. Connect</button></div></div>
+  <div class="mc"><h3>Join a game · you play black</h3><div class="hint">Paste the host's code</div><textarea id="o-in"></textarea><button class="mb2" style="width:100%" onclick="guestJoin()">Create reply</button>
+   <textarea id="o-answer" readonly placeholder="Your reply code appears here. Send it back to the host." onclick="this.select()"></textarea><button class="mb2" style="width:100%" onclick="navigator.clipboard.writeText($('o-answer').value)">Copy reply</button></div>
+  <div class="mr"><button class="mb2" onclick="scr('main')">Back</button></div>
+ </div>
+ <div id="m-custom" style="display:none">
+  <div class="mc"><h3>Presets</h3><div class="mr" style="flex-wrap:wrap">
+   <button class="mb2" onclick="preset('classic')">Classic</button><button class="mb2" onclick="preset('hard')">Hardcore</button><button class="mb2" onclick="preset('lucky')">Lucky</button><button class="mb2" onclick="preset('coin')">Coin flip</button><button class="mb2" onclick="preset('chaos')">Chaos</button><button class="mb2" onclick="preset('king')">Double King</button></div></div>
+  <div class="mc"><h3>Base chances (piece → target, %)</h3><div class="hint" style="margin:0">Pawn → N 20, B 10, R 10, Q 3 · Knight → P 75, B 30, R 30, Q 10 · Bishop → P 85, N 60, R 40, Q 25 · Rook → P 85, N 60, B 40, Q 25 · Queen → P 99, N 80, B 50, R 50</div></div>
+  <div class="mc"><h3>Rules</h3>
+   <div class="fr"><label>Chance multiplier</label><input type="range" id="f-mult" min=".25" max="3" step=".25" oninput="lab()"><span id="l-mult"></span></div>
+   <div class="fr"><label>Max chance</label><input type="range" id="f-cap" min="5" max="100" step="5" oninput="lab()"><span id="l-cap"></span></div>
+   <div class="fr"><label>Min chance</label><input type="range" id="f-min" min="0" max="50" step="5" oninput="lab()"><span id="l-min"></span></div>
+   <div class="fr"><label>Fixed chance (0 = off)</label><input type="range" id="f-fixed" min="0" max="95" step="5" oninput="lab()"><span id="l-fixed"></span></div>
+   <div class="fr"><label>Upgrades per player</label><input type="range" id="f-limit" min="0" max="10" step="1" oninput="lab()"><span id="l-limit"></span></div>
+   <div class="fr"><label>Allowed targets</label><div class="tgs"><label><input type="checkbox" id="t-p">♟</label><label><input type="checkbox" id="t-n">♞</label><label><input type="checkbox" id="t-b">♝</label><label><input type="checkbox" id="t-r">♜</label><label><input type="checkbox" id="t-q">♛</label></div></div>
+   <div class="fr"><label>King upgrade (1× per game)</label><div class="tgs"><label><input type="checkbox" id="f-king">allow</label></div></div>
+   <div class="fr"><label>King chance</label><input type="range" id="f-kingChance" min="1" max="50" step="1" oninput="lab()"><span id="l-kingChance"></span></div>
+   <div class="fr"><label>On fail</label><select id="f-fail"><option value="vanish">Piece disappears</option><option value="stay">Piece stays (turn lost)</option></select></div>
+   <div class="fr"><label>Opponent</label><select id="f-opp"><option value="l">Local player</option><option value="1">AI easy</option><option value="2">AI medium</option><option value="3">AI hard</option></select></div>
+   <div class="fr"><label>AI may upgrade</label><div class="tgs"><label><input type="checkbox" id="f-ai">on</label></div></div>
+  </div>
+  <div class="mr"><button class="mb2" onclick="scr('main')">Back</button><button class="mb2" style="background:var(--y);color:#111" onclick="startCustom()">Start game</button></div>
+ </div>
+</div></div>
+<div class="mod" id="mod"><div class="mb" id="mb"></div></div>
+<script>
+const $=id=>document.getElementById(id);
+const V={p:1,n:3,b:3.2,r:5,q:9,k:4},G={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟\uFE0E'},NM={p:'Pawn',n:'Knight',b:'Bishop',r:'Rook',q:'Queen'};
+let B,turn,sel,tg,over,busy,last,caps,st,boomAt=-1,mode='ai',diff=2,ups={w:0,b:0};
+const defCfg=()=>({mult:1,cap:100,min:0,fixed:0,limit:0,targets:{p:1,n:1,b:1,r:1,q:1},fail:'vanish',aiUp:1,king:0,kingChance:10});let CFG=defCfg();let kingUsed={w:0,b:0};
+const human=c=>mode==='local'||(mode==='online'?c===myColor:c==='w');
+let host=true,myColor='w',pc,dc;
+const nm=c=>mode==='online'?(c===myColor?'You':'Opponent'):mode==='ai'?(c==='w'?'You':'Black'):(c==='w'?'White':'Black');
+const T={p:{n:20,b:10,r:10,q:3},n:{p:75,b:30,r:30,q:10},b:{p:85,n:60,r:40,q:25},r:{p:85,n:60,b:40,q:25},q:{p:99,n:80,b:50,r:50}};
+const chanceFor=(a,b)=>{if(b==='k')return CFG.kingChance;const c=CFG.fixed>0?CFG.fixed:T[a][b]*CFG.mult;return Math.max(CFG.min,Math.min(Math.max(CFG.cap,CFG.min),c))};
+function canUp(i,t,c){const p=B[i];if(!p||p.c!==c||p.t==='k'||t===p.t)return false;
+ if(t==='k'){if(!CFG.king||kingUsed[c])return false}else{if(!CFG.targets[t])return false;if(t==='p'&&(c==='w'?i>>3===0:i>>3===7))return false}
+ return !(CFG.limit&&ups[c]>=CFG.limit)}
+function setHint(){$('hint').textContent=(CFG.fixed>0?`Every upgrade has a fixed ${CFG.fixed}% chance.`:`Chance depends on the piece pair (fixed table) × ${CFG.mult}, from ${CFG.min}% to ${Math.max(CFG.cap,CFG.min)}%.`)+(CFG.fail==='stay'?' On fail the piece stays.':' On fail the piece disappears.')+(CFG.limit?` Limit: ${CFG.limit} per player.`:'')+' A switch takes your turn and can go up or down.'+(CFG.king?` Once per game a piece may become a second king (${CFG.kingChance}%). With two kings you are in check only when both are attacked, and a king can be captured. Win by checkmating the last king.`:'')}
+function init(){B=Array(64).fill(null);'rnbqkbnr'.split('').forEach((t,i)=>{B[i]={t,c:'b'};B[56+i]={t,c:'w'};B[8+i]={t:'p',c:'b'};B[48+i]={t:'p',c:'w'}});
+ turn='w';ups={w:0,b:0};kingUsed={w:0,b:0};setHint();sel=-1;tg=[];over=false;busy=false;last=[];caps={w:[],b:[]};st=[0,0,0];$('log').innerHTML='';render()}
+function pm(b,i){const p=b[i],r=i>>3,f=i&7,o=[];
+ const add=(rr,ff)=>{if(rr<0||rr>7||ff<0||ff>7)return 0;const j=rr*8+ff,q=b[j];if(!q){o.push(j);return 1}if(q.c!==p.c)o.push(j);return 0};
+ if(p.t==='p'){const d=p.c==='w'?-1:1,s=p.c==='w'?6:1;if(r+d<0||r+d>7)return o;
+  if(!b[(r+d)*8+f]){o.push((r+d)*8+f);if(r===s&&!b[(r+2*d)*8+f])o.push((r+2*d)*8+f)}
+  for(const e of[-1,1]){const ff=f+e;if(ff>=0&&ff<8){const q=b[(r+d)*8+ff];if(q&&q.c!==p.c)o.push((r+d)*8+ff)}}return o}
+ if(p.t==='n'){[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(([a,c])=>add(r+a,f+c));return o}
+ if(p.t==='k'){for(let a=-1;a<2;a++)for(let c=-1;c<2;c++)if(a||c)add(r+a,f+c);return o}
+ const D=[];if(p.t!=='r')D.push([1,1],[1,-1],[-1,1],[-1,-1]);if(p.t!=='b')D.push([1,0],[-1,0],[0,1],[0,-1]);
+ D.forEach(([a,c])=>{let rr=r+a,ff=f+c;while(add(rr,ff)){rr+=a;ff+=c}});return o}
+function chk(b,c){const ks=[];b.forEach((x,i)=>{if(x&&x.t==='k'&&x.c===c)ks.push(i)});if(!ks.length)return false;
+ const at=new Set();b.forEach((x,i)=>{if(x&&x.c!==c)pm(b,i).forEach(j=>at.add(j))});return ks.every(k=>at.has(k))}
+function mk(b,i,j){const n=b.slice(),p=n[i];n[j]=(p.t==='p'&&(j>>3===0||j>>3===7))?{t:'q',c:p.c}:p;n[i]=null;return n}
+const legal=(b,i)=>pm(b,i).filter(j=>!chk(mk(b,i,j),b[i].c));
+const allMoves=(b,c)=>{const o=[];b.forEach((x,i)=>{if(x&&x.c===c)legal(b,i).forEach(j=>o.push([i,j]))});return o};
+const name=i=>'abcdefgh'[i&7]+(8-(i>>3));
+function lg(t,c){$('log').innerHTML=`<div class="${c||''}">${t}</div>`+$('log').innerHTML}
+function render(){const bd=$('board');bd.innerHTML='';const ck=chk(B,turn)?B.findIndex(x=>x&&x.t==='k'&&x.c===turn):-1;
+ for(let k=0;k<64;k++){const i=(mode==='online'&&myColor==='b')?63-k:k,d=document.createElement('div'),p=B[i];
+  d.className='sq '+(((i>>3)+(i&7))%2?'d':'l')+(i===sel?' sel':'')+(tg.includes(i)?' mv'+(p?' cap':''):'')+(i===ck?' chk':'')+(last.includes(i)?' last':'')+(i===boomAt?' boom':'');
+  if(p)d.innerHTML=`<span class="pc ${p.c}">${G[p.t]}</span>`;
+  if(k>>3===7)d.innerHTML+=`<i class="co">${'abcdefgh'[i&7]}</i>`;if((k&7)===7)d.innerHTML+=`<i class="ro">${8-(i>>3)}</i>`;
+  d.onclick=()=>click(i);bd.appendChild(d)}
+ const mv=allMoves(B,turn).length,c=chk(B,turn);
+ if(!over&&!mv){over=true;$('status').innerHTML=c?`Checkmate. ${winName()} win!`:'Stalemate. Draw.'}
+ else if(!over)$('status').textContent=(mode==='online'?(turn===myColor?'Your turn':"Opponent's turn"):mode==='ai'?(turn==='w'?'Your turn':'Black is thinking...'):(turn==='w'?'White':'Black')+"'s turn")+(c?' · Check!':'');
+ $('sU').textContent=st[0];$('sW').textContent=st[1];$('sL').textContent=st[2];
+ const cp=c=>caps[c].map(t=>`<span class="pc ${c==='w'?'b':'w'}">${G[t]}</span>`).join('');$('c1').innerHTML=cp('b');$('c2').innerHTML=cp('w');
+ panel()}
+function panel(){const o=$('opts'),sp=$('sp');o.innerHTML='';
+ if(sel<0||!B[sel]){sp.textContent='Click your piece';return}
+ const p=B[sel];sp.innerHTML=`<span class="g pc ${p.c}">${G[p.t]}</span><div><b>${NM[p.t]||'King'}</b><br><small style="color:#888">${name(sel)}</small></div>`;
+ if(p.t==='k'||p.c!==turn||!human(turn)||over||busy)return;
+ if(CFG.limit&&ups[turn]>=CFG.limit){o.innerHTML='<div class="hint">Upgrade limit reached</div>';return}
+ const safe=CFG.fail==='stay'||!chk(B.map((x,i)=>i===sel?null:x),turn);
+ ['p','n','b','r','q','k'].filter(t=>canUp(sel,t,turn)).forEach(t=>{const ch=chanceFor(p.t,t);
+  o.innerHTML+=`<button class="opt" ${safe?'':'disabled title="Piece is pinned"'} onclick="tryUp('${t}')"><span class="g pc ${p.c}">${G[t]}</span>${t==='k'?'King (1×)':NM[t]}<b>${ch.toFixed(1)}%</b></button>`});
+ if(!o.innerHTML)o.innerHTML='<div class="hint">No upgrade targets allowed</div>'}
+function click(i){if(over||busy||!human(turn))return;const p=B[i];
+ if(sel>=0&&tg.includes(i)){act(sel,i);return}
+ if(p&&p.c===turn){sel=i;tg=legal(B,i)}else{sel=-1;tg=[]}render()}
+function doMove(i,j){const t=B[j];if(t)caps[t.c].push(t.t);B=mk(B,i,j);last=[i,j];sel=-1;tg=[];
+ lg(`${nm(turn)}: ${name(i)}→${name(j)}${t?' ×'+NM[t.t]:''}`);turn=turn==='w'?'b':'w';render();nextTurn()}
+/* upgrade */
+function tryUp(t){const i=sel,p=B[i];if(!p||busy)return;
+ if(mode==='online'){if(host)startUp(i,t,'w');else{send({t:'req',k:'up',i,to:t});sel=-1;tg=[];render()}return}
+ const ch=chanceFor(p.t,t);busy=true;spinWheel(ch,win=>{apply(i,t,win,turn);busy=false})}
+function startUp(i,t,c){const ch=chanceFor(B[i].t,t),win=Math.random()*100<ch;send({t:'spin',i,to:t,c,ch,win});runSpin(i,t,c,ch,win)}
+function runSpin(i,t,c,ch,win){busy=true;spinWheel(ch,w=>{apply(i,t,w,c);busy=false},win)}
+function act(i,j){if(mode!=='online')return doMove(i,j);if(host){doMove(i,j);send({t:'move',i,j})}else{send({t:'req',k:'move',i,j});sel=-1;tg=[];render()}}
+function winName(){const w=turn==='w'?'b':'w';return mode==='online'?(w===myColor?'You':'Opponent'):mode==='ai'?(w==='w'?'You':'Black'):(w==='w'?'White':'Black')}
+function newGame(){if(mode==='online'){if(!host)return lg('Only the host can restart');init();send({t:'start',cfg:CFG})}else init()}
+function apply(i,t,win,c){const p=B[i];st[0]++;ups[c]++;if(t==='k')kingUsed[c]=1;
+ if(win){B[i]={t,c};st[1]++;lg(`${nm(c)}: ${NM[p.t]} ${name(i)} → ${NM[t]} ✓`,'ok')}
+ else if(CFG.fail==='stay')lg(`${nm(c)}: ${NM[p.t]} ${name(i)} upgrade failed, piece stays ✗`,'no')
+ else{B[i]=null;st[2]++;boomAt=i;caps[c].push(p.t);lg(`${nm(c)}: ${NM[p.t]} ${name(i)} lost ✗`,'no');setTimeout(()=>boomAt=-1,800)}
+ last=[i];sel=-1;tg=[];turn=c==='w'?'b':'w';render();nextTurn()}
+function nextTurn(){if(mode==='ai'&&!human(turn)&&!over)setTimeout(ai,650)}
+function ai(){if(over)return;
+ const mat=b=>b.reduce((s,x)=>x?s+(x.c==='b'?V[x.t]:-V[x.t]):0,0);
+ if(CFG.aiUp&&Math.random()<{1:.04,2:.1,3:.2}[diff]){
+  const c=B.map((x,i)=>x&&x.c==='b'&&x.t!=='k'?i:-1).filter(i=>i>=0);
+  while(c.length){const i=c.splice(Math.floor(Math.random()*c.length),1)[0];
+   if(CFG.fail!=='stay'&&chk(B.map((x,k)=>k===i?null:x),'b'))continue;
+   const f=B[i].t;let ts=['p','n','b','r','q'].filter(t=>canUp(i,t,'b'));
+   if(diff===2)ts=ts.filter(t=>V[t]>V[f]);
+   const ev=t=>{const q=chanceFor(f,t)/100;return q*(V[t]-V[f])-(CFG.fail==='stay'?0:(1-q)*V[f])};
+   if(diff===3){ts.sort((a,b)=>ev(b)-ev(a));ts=ts.filter(t=>ev(t)>-1.2).slice(0,1)}
+   if(!ts.length)continue;const t=ts[Math.floor(Math.random()*ts.length)],ch=chanceFor(f,t);
+   lg(`Black tries ${NM[f]} → ${NM[t]} (${ch.toFixed(0)}%)`);apply(i,t,Math.random()*100<ch,'b');return}}
+ const m=allMoves(B,'b');if(!m.length){render();return}
+ let best=-1e9,pick=m[0];
+ m.forEach(([i,j])=>{const nb=mk(B,i,j);let s;
+  if(diff===1)s=Math.random()*10+(B[j]?V[B[j].t]*2:0);
+  else if(diff===2){s=(B[j]?V[B[j].t]*10:0)+Math.random()*3;if(allMoves(nb,'w').some(([a,b])=>b===j))s-=V[nb[j].t]*8;if(chk(nb,'w'))s+=2}
+  else{const rep=allMoves(nb,'w');s=(rep.length?Math.min(...rep.map(([a,b])=>mat(mk(nb,a,b)))):(chk(nb,'w')?1000:0))*10+Math.random()}
+  if(s>best){best=s;pick=[i,j]}});doMove(...pick)}
+/* wheel */
+function spinWheel(ch,done,forced){const m=$('mb');m.className='mb';
+ m.innerHTML=`<h2>Upgrade</h2><div class="wh"><canvas id="cv" width="260" height="260"></canvas><div class="wc"><b>${ch.toFixed(2)}%</b><span id="wr"></span></div></div>`;$('mod').classList.add('on');
+ const win=forced===undefined?Math.random()*100<ch:forced,z=ch*3.6;const p=win?z*(.08+Math.random()*.84):z+8+Math.random()*(352-z-16);
+ const target=((180-p)%360+360)%360;let ang=90;const d=((target-90)%360+360)%360,tot=1800+d,t0=performance.now(),dur=3200;
+ (function f(n){const k=Math.min((n-t0)/dur,1),e=1-Math.pow(1-k,3);drawW(ch,90+tot*e);
+  if(k<1)requestAnimationFrame(f);else{$('wr').textContent=win?'🎉':'💥';m.className=win?'mb':'mb l';setTimeout(()=>{$('mod').classList.remove('on');done(win)},900)}})(t0)}
+function drawW(ch,ang){const c=$('cv').getContext('2d'),cx=130,cy=130,R=104;c.clearRect(0,0,260,260);
+ c.beginPath();c.arc(cx,cy,R+12,0,7);c.strokeStyle='#2c2c2c';c.lineWidth=2;c.stroke();c.beginPath();c.arc(cx,cy,R,0,7);c.fillStyle='#161616';c.fill();
+ const a0=Math.PI,a1=Math.PI-ch/100*2*Math.PI;const g=c.createLinearGradient(0,cy-R,0,cy+R);g.addColorStop(0,'#ffd400');g.addColorStop(1,'#ff4a1c');
+ c.lineWidth=18;c.strokeStyle=g;c.beginPath();c.arc(cx,cy,R-10,a0,a1,true);c.stroke();
+ c.save();c.translate(cx,cy);c.rotate(ang*Math.PI/180);c.fillStyle='#ffb000';c.shadowColor='#ffb000';c.shadowBlur=10;c.beginPath();c.moveTo(R+4,0);c.lineTo(R-18,-8);c.lineTo(R-12,0);c.lineTo(R-18,8);c.fill();c.restore()}
+/* menu */
+const PRE={classic:{},hard:{mult:.6,cap:40,fail:'vanish'},lucky:{mult:2,cap:95,min:20},coin:{fixed:50,cap:100},chaos:{fixed:90,cap:100,limit:3},king:{king:1,kingChance:10}};
+function scr(x){['main','custom','online'].forEach(k=>$('m-'+k).style.display=k===x?'block':'none')}
+function showMenu(x){if(busy)return;$('menu').classList.add('on');scr(x||'main')}
+function start(m,d){mode=m;diff=d||2;CFG=defCfg();$('menu').classList.remove('on');init();maybeAI()}
+function maybeAI(){}
+function fill(c){['mult','cap','min','fixed','limit','kingChance'].forEach(k=>$('f-'+k).value=c[k]);['p','n','b','r','q'].forEach(k=>$('t-'+k).checked=!!c.targets[k]);$('f-fail').value=c.fail;$('f-ai').checked=!!c.aiUp;$('f-king').checked=!!c.king;lab()}
+function lab(){['mult','cap','min','fixed','limit','kingChance'].forEach(k=>{const v=$('f-'+k).value;$('l-'+k).textContent=k==='mult'?'×'+v:k==='limit'?(v==0?'∞':v):k==='fixed'&&v==0?'off':v+'%'})}
+function preset(n){fill(Object.assign(defCfg(),PRE[n]))}
+function readCfg(){return{mult:+$('f-mult').value,cap:+$('f-cap').value,min:+$('f-min').value,fixed:+$('f-fixed').value,limit:+$('f-limit').value,kingChance:+$('f-kingChance').value,
+  targets:{p:$('t-p').checked,n:$('t-n').checked,b:$('t-b').checked,r:$('t-r').checked,q:$('t-q').checked},fail:$('f-fail').value,aiUp:$('f-ai').checked,king:$('f-king').checked}}
+function startCustom(){CFG=readCfg();
+ try{localStorage.setItem('cu_cfg',JSON.stringify(CFG))}catch(e){}
+ const o=$('f-opp').value;mode=o==='l'?'local':'ai';diff=+o||2;$('menu').classList.remove('on');init()}
+let sv=defCfg();try{sv=Object.assign(defCfg(),JSON.parse(localStorage.getItem('cu_cfg')||'{}'))}catch(e){}
+/* online (WebRTC, no server) */
+const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const dec=t=>JSON.parse(decodeURIComponent(escape(atob(t.trim()))));
+function send(o){if(dc&&dc.readyState==='open')dc.send(JSON.stringify(o))}
+function mkPc(){pc=new RTCPeerConnection(ICE);pc.onconnectionstatechange=()=>{if(mode==='online'&&['failed','disconnected','closed'].includes(pc.connectionState)){over=true;$('status').textContent='Opponent disconnected'}}}
+const gather=()=>new Promise(r=>{if(pc.iceGatheringState==='complete')return r();pc.onicegatheringstatechange=()=>pc.iceGatheringState==='complete'&&r();setTimeout(r,4000)});
+function setupDc(){dc.onmessage=e=>onMsg(JSON.parse(e.data));
+ dc.onopen=()=>{if(host){const r=$('o-rules').value;CFG=r==='custom'?readCfg():Object.assign(defCfg(),PRE[r]);mode='online';myColor='w';$('menu').classList.remove('on');init();send({t:'start',cfg:CFG})}}}
+async function hostCreate(){host=true;mkPc();dc=pc.createDataChannel('g');setupDc();await pc.setLocalDescription(await pc.createOffer());await gather();$('o-offer').value=enc(pc.localDescription);$('o-host').style.display='block'}
+async function hostConnect(){try{await pc.setRemoteDescription(dec($('o-ans').value))}catch(e){alert('Invalid reply code')}}
+async function guestJoin(){try{host=false;mkPc();pc.ondatachannel=e=>{dc=e.channel;setupDc()};await pc.setRemoteDescription(dec($('o-in').value));await pc.setLocalDescription(await pc.createAnswer());await gather();$('o-answer').value=enc(pc.localDescription)}catch(e){alert('Invalid host code')}}
+function onMsg(m){
+ if(m.t==='start'&&!host){mode='online';myColor='b';CFG=m.cfg;$('menu').classList.remove('on');init();return}
+ if(!host){if(m.t==='move')doMove(m.i,m.j);else if(m.t==='spin')runSpin(m.i,m.to,m.c,m.ch,m.win);return}
+ if(m.t!=='req'||over||busy||turn!=='b')return;const p=B[m.i];if(!p||p.c!=='b')return;
+ if(m.k==='move'){if(!legal(B,m.i).includes(m.j))return;doMove(m.i,m.j);send({t:'move',i:m.i,j:m.j})}
+ else if(m.k==='up'){if(!canUp(m.i,m.to,'b'))return;
+  if(CFG.fail!=='stay'&&chk(B.map((x,k)=>k===m.i?null:x),'b'))return;startUp(m.i,m.to,'b')}}
+sv.targets=Object.assign(defCfg().targets,sv.targets);sv.kingChance=sv.kingChance||10;fill(sv);init();showMenu();
+</script></body></html>
