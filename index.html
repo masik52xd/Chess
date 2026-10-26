@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="uk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chess Upgrader</title>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap');
 :root{--y:#ffc800;--y2:#f5a300;--bd:#262626}
@@ -74,16 +75,13 @@ textarea{width:100%;height:64px;background:#222;color:#fff;border:1px solid #333
   <div class="mc"><h3>Play vs computer</h3><div class="mr"><button class="mb2" onclick="start('ai',1)">Easy<small>random-ish</small></button><button class="mb2" onclick="start('ai',2)">Medium<small>takes pieces</small></button><button class="mb2" onclick="start('ai',3)">Hard<small>looks 2 moves</small></button></div></div>
   <div class="mc"><h3>Local</h3><div class="mr"><button class="mb2" onclick="start('local')">2 players<small>one device, standard rules</small></button></div></div>
   <div class="mc"><h3>Custom</h3><div class="mr"><button class="mb2" onclick="scr('custom')">Custom rules<small>chances, targets, limits, fail effect</small></button></div></div>
-  <div class="mc"><h3>Online</h3><div class="mr"><button class="mb2" onclick="scr('online')">Play online<small>peer-to-peer, no server (works on GitHub Pages)</small></button></div></div>
+  <div class="mc"><h3>Online</h3><div class="mr"><button class="mb2" onclick="scr('online')">Play online<small>5-letter room code, works on GitHub Pages</small></button></div></div>
  </div>
  <div id="m-online" style="display:none">
   <div class="mc"><h3>Rules (the host decides)</h3><select id="o-rules" class="fi2"><option value="classic">Classic</option><option value="hard">Hardcore</option><option value="lucky">Lucky</option><option value="coin">Coin flip</option><option value="chaos">Chaos</option><option value="king">Double King</option><option value="custom">Custom (from the Custom screen)</option></select></div>
-  <div class="mc"><h3>Host a game · you play white</h3><button class="mb2" style="width:100%" onclick="hostCreate()">1. Create room code</button>
-   <div id="o-host" style="display:none"><div class="hint">2. Copy this code and send it to your friend</div><textarea id="o-offer" readonly onclick="this.select()"></textarea>
-    <button class="mb2" style="width:100%" onclick="navigator.clipboard.writeText($('o-offer').value)">Copy code</button>
-    <div class="hint" style="margin-top:10px">3. Paste your friend's reply here</div><textarea id="o-ans"></textarea><button class="mb2" style="width:100%" onclick="hostConnect()">4. Connect</button></div></div>
-  <div class="mc"><h3>Join a game · you play black</h3><div class="hint">Paste the host's code</div><textarea id="o-in"></textarea><button class="mb2" style="width:100%" onclick="guestJoin()">Create reply</button>
-   <textarea id="o-answer" readonly placeholder="Your reply code appears here. Send it back to the host." onclick="this.select()"></textarea><button class="mb2" style="width:100%" onclick="navigator.clipboard.writeText($('o-answer').value)">Copy reply</button></div>
+  <div class="mc"><h3>Host · you play white</h3><button class="mb2" style="width:100%" onclick="roomHost()">Create room</button>
+   <div id="o-wait" style="display:none;text-align:center;margin-top:14px"><div class="hint">Tell your friend this code</div><div id="o-code" style="font-size:44px;font-weight:800;letter-spacing:10px;color:var(--y);margin:6px 0"></div><div class="hint">Waiting for the opponent...</div></div></div>
+  <div class="mc"><h3>Join · you play black</h3><div class="fr" style="margin:0"><input id="o-join" maxlength="5" placeholder="ROOM CODE" style="flex:1;background:#222;color:#fff;border:1px solid #333;border-radius:8px;padding:12px;font-size:18px;letter-spacing:4px;text-transform:uppercase;font-family:inherit;outline:0"><button class="mb2" style="flex:none;width:110px" onclick="roomJoin()">Join</button></div></div>
   <div class="mr"><button class="mb2" onclick="scr('main')">Back</button></div>
  </div>
  <div id="m-custom" style="display:none">
@@ -226,18 +224,25 @@ function startCustom(){CFG=readCfg();
  try{localStorage.setItem('cu_cfg',JSON.stringify(CFG))}catch(e){}
  const o=$('f-opp').value;mode=o==='l'?'local':'ai';diff=+o||2;$('menu').classList.remove('on');init()}
 let sv=defCfg();try{sv=Object.assign(defCfg(),JSON.parse(localStorage.getItem('cu_cfg')||'{}'))}catch(e){}
-/* online (WebRTC, no server) */
-const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
-const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
-const dec=t=>JSON.parse(decodeURIComponent(escape(atob(t.trim()))));
+/* online (PeerJS: short room code, WebRTC data channel) */
+let peer;
+const toast=t=>alert(t);
 function send(o){if(dc&&dc.readyState==='open')dc.send(JSON.stringify(o))}
-function mkPc(){pc=new RTCPeerConnection(ICE);pc.onconnectionstatechange=()=>{if(mode==='online'&&['failed','disconnected','closed'].includes(pc.connectionState)){over=true;$('status').textContent='Opponent disconnected'}}}
-const gather=()=>new Promise(r=>{if(pc.iceGatheringState==='complete')return r();pc.onicegatheringstatechange=()=>pc.iceGatheringState==='complete'&&r();setTimeout(r,4000)});
-function setupDc(){dc.onmessage=e=>onMsg(JSON.parse(e.data));
- dc.onopen=()=>{if(host){const r=$('o-rules').value;CFG=r==='custom'?readCfg():Object.assign(defCfg(),PRE[r]);mode='online';myColor='w';$('menu').classList.remove('on');init();send({t:'start',cfg:CFG})}}}
-async function hostCreate(){host=true;mkPc();dc=pc.createDataChannel('g');setupDc();await pc.setLocalDescription(await pc.createOffer());await gather();$('o-offer').value=enc(pc.localDescription);$('o-host').style.display='block'}
-async function hostConnect(){try{await pc.setRemoteDescription(dec($('o-ans').value))}catch(e){alert('Invalid reply code')}}
-async function guestJoin(){try{host=false;mkPc();pc.ondatachannel=e=>{dc=e.channel;setupDc()};await pc.setRemoteDescription(dec($('o-in').value));await pc.setLocalDescription(await pc.createAnswer());await gather();$('o-answer').value=enc(pc.localDescription)}catch(e){alert('Invalid host code')}}
+function wrapConn(c){dc={get readyState(){return c.open?'open':'closed'},send:x=>c.send(x)};
+ c.on('data',d=>onMsg(JSON.parse(d)));
+ c.on('close',()=>{if(mode==='online'){over=true;$('status').textContent='Opponent disconnected'}})}
+function hostStart(){const r=$('o-rules').value;CFG=r==='custom'?readCfg():Object.assign(defCfg(),PRE[r]);mode='online';myColor='w';$('menu').classList.remove('on');init();send({t:'start',cfg:CFG})}
+function roomHost(){if(typeof Peer==='undefined')return alert('PeerJS failed to load. Check your internet connection.');
+ host=true;const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',code=Array.from({length:5},()=>A[Math.floor(Math.random()*A.length)]).join('');
+ if(peer)peer.destroy();$('o-wait').style.display='block';$('o-code').textContent='...';peer=new Peer('cuchess-'+code);
+ peer.on('open',()=>{$('o-code').textContent=code});
+ peer.on('connection',c=>{wrapConn(c);c.on('open',hostStart)});
+ peer.on('error',e=>{if(e.type==='unavailable-id')roomHost();else alert('Connection error: '+e.type)})}
+function roomJoin(){if(typeof Peer==='undefined')return alert('PeerJS failed to load. Check your internet connection.');
+ const code=$('o-join').value.trim().toUpperCase();if(code.length<5)return toast('Enter the 5-letter code');
+ host=false;if(peer)peer.destroy();peer=new Peer();
+ peer.on('open',()=>{const c=peer.connect('cuchess-'+code,{reliable:true});wrapConn(c);setTimeout(()=>{if(!c.open)toast('Could not connect. Check the code.')},10000)});
+ peer.on('error',e=>toast(e.type==='peer-unavailable'?'Room not found':'Connection error: '+e.type))}
 function onMsg(m){
  if(m.t==='start'&&!host){mode='online';myColor='b';CFG=m.cfg;$('menu').classList.remove('on');init();return}
  if(!host){if(m.t==='move')doMove(m.i,m.j);else if(m.t==='spin')runSpin(m.i,m.to,m.c,m.ch,m.win);return}
